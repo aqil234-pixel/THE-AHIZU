@@ -1,115 +1,90 @@
-markdown
-<div align="center">
-  
-  # ⚡ THE-AHIZU
-  
-  ### *Three Heads, One Vision*
-  
-  <br>
-  
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=2000&pause=500&color=2E97F7&center=true&vCenter=true&width=300&lines=Telegram+Bot;Backend+System;API+Integration" />
-  
-  <br>
-  
-  <!-- Badges -->
-  <p>
-    <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python" />
-    <img src="https://img.shields.io/badge/Telegram-Bot-2CA5E0?style=flat-square&logo=telegram" />
-    <img src="https://img.shields.io/badge/Database-SQLite-003B57?style=flat-square&logo=sqlite" />
-    <img src="https://img.shields.io/badge/Status-Active-00C853?style=flat-square" />
-  </p>
-  
-  <p>
-    <img src="https://img.shields.io/github/last-commit/ahmadaqil/THE-AHIZU?style=flat-square" />
-    <img src="https://img.shields.io/github/repo-size/ahmadaqil/THE-AHIZU?style=flat-square" />
-    <img src="https://img.shields.io/github/license/ahmadaqil/THE-AHIZU?style=flat-square" />
-  </p>
-# 💡 About The Project
+<h1 align="center">🚀 THE-AHIZU TEAM</h1>
+<h3 align="center">Telegram Bot Developer • Backend Builder • Automation System</h3>
 
-> "Simple Automation for Real Business"
+<h2 align="center">THE-AHIZU</h2>
 
-Proyek ini adalah sistem **Telegram Bot berbasis Python** yang membantu UMKM dalam mengotomatisasi layanan pelanggan serta mengelola stok barang secara efisien.
+<p align="center">
+  <img src="https://img.shields.io/badge/Team-AHIZU-blue?style=flat-square" />
+  <img src="https://img.shields.io/badge/Members-3_People-success?style=flat-square" />
+  <img src="https://img.shields.io/badge/Focus-Telegram_Bot-red?style=flat-square" />
+  <img src="https://img.shields.io/badge/Project-Active-brightgreen?style=flat-square" />
+</p>
 
-Bot dapat:
-
-💬 Membalas pertanyaan pelanggan otomatis  
-📦 Mengelola stok barang  
-⚡ Memberikan informasi produk real-time  
-📊 Mengurangi kesalahan administrasi manual  
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-Backend-blue?style=flat-square&logo=python" />
+  <img src="https://img.shields.io/badge/Git-Workflow-orange?style=flat-square&logo=git" />
+  <img src="https://img.shields.io/badge/GitHub-Collaboration-black?style=flat-square&logo=github" />
+</p>
 
 ---
 
-# 🚀 Main Features
+## 💡 About THE-AHIZU
+
+> **"Three Heads, One Vision."**
+
+**THE-AHIZU** adalah tim developer yang berfokus pada pengembangan sistem otomatisasi berbasis **Python dan Telegram Bot API**.
+
+Kami mengembangkan solusi digital sederhana yang membantu **UMKM** meningkatkan layanan pelanggan melalui sistem bot yang dapat merespon pesan secara otomatis, cepat, dan efisien.
+
+---
+
+## 🧠 Core Expertise
+
+- Telegram Bot Development  
+- Python Backend Logic  
+- REST API Integration  
+- Git Collaboration Workflow  
+- Automation System Design  
+
+---
+
+## ⚙️ Tech Stack
+
+<h3 align="center">Core Development</h3>
+
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=python" />
+  <img src="https://skillicons.dev/icons?i=git" />
+  <img src="https://skillicons.dev/icons?i=github" />
+  <img src="https://skillicons.dev/icons?i=vscode" />
+</p>
+
+---
+
+## 🚀 Featured Project
+
+# 🤖 UMKM SERVICE BOT – Smart Assistant for Small Business
+
+> Telegram Bot berbasis Python yang membantu usaha kecil mengelola layanan pelanggan secara otomatis.
+
+### 🔥 Key Features
 
 ✔ Auto Customer Service Reply  
 ✔ Product & Price Information  
-✔ Stock Checking System  
-✔ Admin Stock Management  
-✔ Telegram Real-time Interaction  
+✔ Stock Information System  
+✔ Real-time Telegram Interaction  
+✔ Git-based Team Collaboration  
 
 ---
 
-# 🧠 Learning Objectives
-
-### 💻 Hard Skills
-- Python Programming
-- Telegram Bot API
-- Git & GitHub Workflow
-- CRUD Data Management
-
-### 🤝 Soft Skills
-- Team Collaboration
-- Problem Solving
-- Documentation
-- Software Development Workflow
-
----
-
-# ⚙️ Tech Stack
+## 📊 Team Activity
 
 <p align="center">
-<img src="https://skillicons.dev/icons?i=python"/>
-<img src="https://skillicons.dev/icons?i=git"/>
-<img src="https://skillicons.dev/icons?i=github"/>
-<img src="https://skillicons.dev/icons?i=vscode"/>
+  <img src="https://github-readme-activity-graph.vercel.app/graph?username=ahmadaqil&theme=tokyo-night&hide_border=true"/>
 </p>
 
 ---
 
-# 📂 Project Structure
-
-UMKM-BOT/
-│
-├── docs/      # Documentation
-├── src/       # Source Code
-└── README.md
-
----
-# 📊 Project Statistics
-
-<p align="center">
-<img src="https://github-readme-stats.vercel.app/api?username=USERNAME_GITHUB&show_icons=true&theme=tokyonight&hide_border=true"/>
-</p>
-
-<p align="center">
-<img src="https://github-readme-streak-stats.herokuapp.com/?user=USERNAME_GITHUB&theme=tokyonight&hide_border=true"/>
-</p>
-
----
-
-# 📈 Contribution Graph
-
-<p align="center">
-<img src="https://github-readme-activity-graph.vercel.app/graph?username=USERNAME_GITHUB&theme=tokyo-night&hide_border=true"/>
-</p>
-
----
 # 👥 Meet The Team
+
+---
 
 ## 👤 Ahmad Aqil Taqiyyuddin
 
 <p align="center">
-<img src="https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github"/>
+  <a href="https://github.com/aqil234-pixel">
+    <img src="https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github"/>
+  </a>
 </p>
 
 ---
@@ -117,7 +92,9 @@ UMKM-BOT/
 ## 👤 Hilmy Nur Iman
 
 <p align="center">
-<img src="https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github"/>
+  <a href="https://github.com/hilmy">
+    <img src="https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github"/>
+  </a>
 </p>
 
 ---
@@ -125,15 +102,19 @@ UMKM-BOT/
 ## 👤 Zubair Aqwam 'Ibadurrohman
 
 <p align="center">
-<img src="https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github"/>
+  <a href="https://github.com/zubairaqwam">
+    <img src="https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github"/>
+  </a>
 </p>
 
 ---
 
-<p align="center">
-<strong>AHIZU TEAM</strong>
 <br>
-🚀 Automation • Innovation • Collaboration
+
+<p align="center">
+<strong>THE-AHIZU TEAM</strong>  
+<br>
+🚀 Automation • Innovation • Collaboration  
 <br><br>
-© 2026 AHIZU Project
+© 2026 THE-AHIZU
 </p>
