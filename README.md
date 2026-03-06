@@ -1,4 +1,4 @@
-<h1 align="center">🚀 THE-AHIZU TEAM</h1>
+<h1 align="center">🚀 THE-AHIZU TEAM</h1> 
 <p align="center">
 <img src="https://readme-typing-svg.demolab.com?font=Montserrat&weight=700&size=28&duration=2500&pause=500&color=2E97F7&center=true&vCenter=true&width=500&lines=Ahmad+Aqil+Taqiyyuddin;Hilmy+Nur+Iman;Zubair+Aqwam+'Ibadurrohman" alt="Typing SVG" />
   </p>
@@ -121,4 +121,5 @@ Kami mengembangkan solusi digital sederhana yang membantu **UMKM** meningkatkan 
 🚀 Automation • Innovation • Collaboration  
 <br><br>
 © 2026 THE-AHIZU
+
 </p>
