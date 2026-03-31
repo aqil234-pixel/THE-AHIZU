@@ -1,20 +1,25 @@
-import os
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, ConversationHandler
 
 # --- KONFIGURASI ---
-TOKEN = '8360782987:AAHq0sCk99_H_vq73HtTsPP91eVeRX7YoNA' # Token kamu
-ADMIN_ID = 123456789 # Ganti dengan ID kamu
+TOKEN = '8360782987:AAHq0sCk99_H_vq73HtTsPP91eVeRX7YoNA'
+ADMIN_ID = 7283608092
+JSON_KEY = 'credentials.json' # File dari Google Cloud
+SHEET_NAME = 'Pesanan Ikan Hias'
 
-# --- FUNGSI CATAT KE TXT ---
-def catat_ke_file(nama, username, produk, harga):
-    waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    baris_baru = f"[{waktu}] Nama: {nama} | Username: @{username} | Produk: {produk} | Harga: Rp{harga:,}\n"
+# --- FUNGSI GOOGLE SHEETS ---
+def catat_ke_sheet(nama, username, produk, harga):
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name(JSON_KEY, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open(SHEET_NAME).sheet1
     
-    # Membuka file 'pesanan.txt' (akan otomatis dibuat kalau belum ada)
-    with open("pesanan.txt", "a", encoding="utf-8") as file:
-        file.write(baris_baru)
+    # Menambahkan baris baru (Waktu, Nama, Username, Produk, Harga, Status)
+    waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sheet.append_row([waktu, nama, f"@{username}", produk, harga, "Belum Bayar"])
 
 # --- DATA KATALOG ---
 KATALOG = {
@@ -31,7 +36,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🛒 Pesan Ikan", callback_data='pesan_ikan')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
     if update.message:
         await update.message.reply_text(text, reply_markup=reply_markup, parse_mode='Markdown')
     else:
@@ -66,12 +70,12 @@ async def konfirmasi_pesanan(update: Update, context: ContextTypes.DEFAULT_TYPE)
     ikan = KATALOG[key]
     user = query.from_user
 
-    # 1. Catat ke File TXT (Lokal)
+    # 1. Catat ke Google Sheets
     try:
-        catat_ke_file(user.full_name, user.username, ikan['nama'], ikan['harga'])
-        status_log = "✅ Pesanan dicatat di sistem lokal."
+        catat_ke_sheet(user.full_name, user.username, ikan['nama'], ikan['harga'])
+        status_sheet = "✅ Data tercatat di Google Sheets."
     except Exception as e:
-        status_log = f"⚠️ Gagal mencatat: {e}"
+        status_sheet = f"⚠️ Gagal mencatat ke Sheets: {e}"
 
     # 2. Kirim Notif ke Admin
     pesan_admin = (
@@ -79,13 +83,14 @@ async def konfirmasi_pesanan(update: Update, context: ContextTypes.DEFAULT_TYPE)
         f"👤 Pembeli: {user.full_name}\n"
         f"🆔 Username: @{user.username}\n"
         f"🐠 Produk: {ikan['nama']}\n"
-        f"💸 Total: Rp{ikan['harga']:,}\n"
+        f"💸 Total: Rp{ikan['harga']:,}\n\n"
+        f"Silakan hubungi pembeli untuk pembayaran."
     )
     await context.bot.send_message(chat_id=ADMIN_ID, text=pesan_admin, parse_mode='Markdown')
 
     # 3. Respon ke User
     await query.edit_message_text(
-        f"Pesanan **{ikan['nama']}** berhasil dikirim!\n\nAdmin akan segera menghubungi kamu.\n\n_{status_log}_",
+        f"Pesanan **{ikan['nama']}** berhasil dikirim!\n\nAdmin akan segera menghubungi kamu.\n\n{status_sheet}",
         parse_mode='Markdown'
     )
     return ConversationHandler.END
@@ -104,7 +109,7 @@ def main():
     app.add_handler(CallbackQueryHandler(start, pattern='^kembali$'))
     app.add_handler(conv_handler)
 
-    print("Bot Ikan Hias (Versi TXT) sudah meluncur... 🌊")
+    print("Bot Ikan Hias sudah meluncur... 🌊")
     app.run_polling()
 
 if __name__ == '__main__':
