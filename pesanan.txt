@@ -1,8 +1,0 @@
-[2026-03-31 08:53:00] Nama: Maaad | Username: @Crazyqilz | Produk: Guppy Albino | Harga: Rp35,000
-[2026-03-31 08:53:04] Nama: Maaad | Username: @Crazyqilz | Produk: Guppy Albino | Harga: Rp35,000
-[2026-03-31 08:53:05] Nama: Maaad | Username: @Crazyqilz | Produk: Ikan Cupang Nemo | Harga: Rp50,000
-[2026-03-31 08:53:19] Nama: Maaad | Username: @Crazyqilz | Produk: Guppy Albino | Harga: Rp35,000
-[2026-03-31 08:53:20] Nama: Maaad | Username: @Crazyqilz | Produk: Guppy Albino | Harga: Rp35,000
-[2026-03-31 08:53:21] Nama: Maaad | Username: @Crazyqilz | Produk: Ikan Cupang Nemo | Harga: Rp50,000
-[2026-03-31 08:53:22] Nama: Maaad | Username: @Crazyqilz | Produk: Ikan Cupang Nemo | Harga: Rp50,000
-[2026-03-31 08:53:23] Nama: Maaad | Username: @Crazyqilz | Produk: Guppy Albino | Harga: Rp35,000
