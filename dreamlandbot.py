@@ -6,7 +6,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 
 # --- 1. KONFIGURASI ---
 TOKEN = '8360782987:AAHq0sCk99_H_vq73HtTsPP91eVeRX7YoNA'
-ADMIN_ID = 123456789 # GANTI DENGAN ID KAMU
+ADMIN_ID = 8313481314
 SHEET_NAME = 'Pesanan Ikan Hias'
 JSON_FILE = 'credentials.json'
 
