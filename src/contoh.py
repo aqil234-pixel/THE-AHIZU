@@ -1,2 +1,2 @@
 # ini contoh file python
-# untuk latihan git
+# untuk latihan git 
