@@ -106,3 +106,56 @@ async def minta_pembayaran(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total = context.user_data['total_harga']
     alamat = context.user_data['alamat_user']
     waktu = datetime.now().strftime("%d/%m/%Y %H:%M")
+    
+# --- NOTA PEMESANAN UNTUK CUSTOMER --- zuber
+    nota_teks = (
+        f"📝 **NOTA PEMESANAN DIGITAL**\n"
+        f"------------------------------------------\n"
+        f"📅 **Waktu:** {waktu}\n"
+        f"👤 **Pembeli:** {update.effective_user.full_name}\n"
+        f"📦 **Produk:** {ikan['nama']}\n"
+        f"🔢 **Jumlah:** {qty} ekor\n"
+        f"📍 **Alamat:** {alamat}\n"
+        f"------------------------------------------\n"
+        f"💰 **TOTAL TAGIHAN: Rp{total:,}**\n"
+        f"📌 **Status:** MENUNGGU PEMBAYARAN\n\n"
+        f"Silakan transfer sesuai nominal di atas ke salah satu rekening berikut:\n\n"
+        f"🏦 **Bank:** `{NOREK_BANK}`\n"
+        f"📱 **DANA:** `{NOREK_DANA}`\n\n"
+        f"Setelah transfer, silakan klik tombol di bawah ini untuk konfirmasi."
+    )
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ Sudah Transfer (Bank)", callback_data='pay_rekening')],
+        [InlineKeyboardButton("✅ Sudah Transfer (DANA)", callback_data='pay_dana')]
+    ]
+    await update.message.reply_text(nota_teks, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+    return CHOOSING_PAYMENT
+
+async def konfirmasi_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    ikan = context.user_data['ikan_dipilih']
+    qty = context.user_data['qty']
+    total = context.user_data['total_harga']
+    alamat = context.user_data['alamat_user']
+    metode = "Rekening" if query.data == 'pay_rekening' else "DANA"
+    user = query.from_user
+
+    # Simpan data ke Google Sheets
+    catat_ke_sheet(user.full_name, user.username, ikan['nama'], qty, total, alamat, metode)
+
+    # Kirim NOTA / History ke Admin
+    await context.bot.send_message(
+        chat_id=ADMIN_ID,
+        text=f"🔔 **ORDER BARU MASUK**\n\n"
+             f"👤 User: {user.full_name} (@{user.username})\n"
+             f"🐠 Produk: {ikan['nama']}\n"
+             f"🔢 Qty: {qty}\n"
+             f"💰 Total: Rp{total:,}\n"
+             f"📍 Alamat: {alamat}\n"
+             f"💳 Metode: {metode}\n"
+             f"📌 Status: BELUM LUNAS",
+        parse_mode='Markdown'
+    )
