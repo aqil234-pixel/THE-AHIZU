@@ -1,5 +1,4 @@
 #-- import library ---
-import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -36,20 +35,6 @@ KATALOG = {
         "foto": "foto katalog/arowana.JPG"
     },
 }
-
-# --- 2. FUNGSI GOOGLE SHEETS ---
-def catat_ke_sheet(nama, username, produk, qty, total, alamat, metode):
-    try:
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_name(JSON_FILE, scope)
-        client = gspread.authorize(creds)
-        sheet = client.open(SHEET_NAME).sheet1
-        waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        sheet.append_row([waktu, nama, f"@{username}", produk, qty, total, alamat, metode, "BELUM LUNAS"])
-        return True
-    except Exception as e:
-        print(f"Gagal mencatat ke Sheets: {e}")
-        return False
 
 # --- 3. FUNGSI BOT ---iman
 
@@ -160,8 +145,6 @@ async def konfirmasi_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = query.from_user
     waktu = datetime.now().strftime("%d/%m/%Y %H:%M") # Perbaikan: Tambahkan waktu di sini
 
-    # Simpan data ke Google Sheets
-    catat_ke_sheet(user.full_name, user.username, ikan['nama'], qty, total, alamat, metode)
 
     # Kirim NOTA / History ke Admin
     await context.bot.send_message(
