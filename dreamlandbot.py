@@ -22,17 +22,17 @@ KATALOG = {
     "betta": {
         "nama": "Ikan Cupang Nemo", 
         "harga": 50000, 
-        "foto": "foto katalog/cupang.JPG"
+        "foto": "foto katalog/cupang.jpg"
     },
     "guppy": {
         "nama": "Guppy Albino", 
         "harga": 35000, 
-        "foto": "foto katalog/guppy.JPG"
+        "foto": "foto katalog/guppy.jpg"
     },
     "arowana": {
         "nama": "Arwana Silver", 
         "harga": 150000, 
-        "foto": "foto katalog/arowana.JPG"
+        "foto": "foto katalog/arowana.jpg"
     },
 }
 
