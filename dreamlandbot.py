@@ -19,34 +19,18 @@ CHOOSING_FISH, ASKING_QUANTITY, ASKING_ADDRESS, CHOOSING_PAYMENT = range(4)
 
 # KATALOG DENGAN FILE LOKAL
 KATALOG = {
-    "betta": {
-        "nama": "Ikan Cupang Nemo", 
-        "harga": 50000, 
-        "foto": "foto katalog/cupang.jpg"
-    },
-    "guppy": {
-        "nama": "Guppy Albino", 
-        "harga": 35000, 
-        "foto": "foto katalog/guppy.jpg"
-    },
-    "arowana": {
-        "nama": "Arwana Silver", 
-        "harga": 150000, 
-        "foto": "foto katalog/arowana.jpg"
-    },
+    "betta": {"nama": "Ikan Cupang Nemo", "harga": 50000, "foto": "cupang.jpg"},
+    "guppy": {"nama": "Guppy Albino", "harga": 35000, "foto": "guppy.jpg"},
+    "arowana": {"nama": "Arwana Silver", "harga": 150000, "foto": "arowana.jpg"},
 }
-
-# --- 3. FUNGSI BOT ---iman
+# --- 3. FUNGSI BOT ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_name = update.effective_user.first_name
-    teks = (
-        f"Halo {user_name}! 👋\n"
-        f"Selamat datang di **dreamlandfish.myd**.\n"
-        f"Silakan lihat katalog kami di bawah ini:"
-    )
-    keyboard = [[InlineKeyboardButton("🖼️ KLIK Lihat Katalog & Pesan", callback_data='lihat_katalog')]]
-    
+    teks = (f"Halo {user_name}! 👋\n"
+            f"Selamat datang di **dreamlandfish.myd**.\n"
+            f"Silakan lihat katalog kami di bawah ini:")
+    keyboard = [[InlineKeyboardButton("🖼️ Lihat Katalog", callback_data='lihat_katalog')]]
     if update.message:
         await update.message.reply_text(teks, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
     else:
@@ -56,27 +40,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def menu_katalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
-    await query.message.reply_text("📋 **MENGIRIM KATALOG DREAMLANDFISH**", parse_mode='Markdown')
-    
+    await query.message.reply_text("📋 **KATALOG DREAMLANDFISH**", parse_mode='Markdown')
     for k, v in KATALOG.items():
         teks_ikan = f"🔹 **{v['nama']}**\n   └ Harga: Rp{v['harga']:,}"
         keyboard = [[InlineKeyboardButton(f"🛒 Pesan {v['nama']}", callback_data=f"beli_{k}")]]
-        
         try:
             with open(v['foto'], 'rb') as photo_file:
-                await context.bot.send_photo(
-                    chat_id=update.effective_chat.id,
-                    photo=photo_file,
-                    caption=teks_ikan,
-                    reply_markup=InlineKeyboardMarkup(keyboard),
-                    parse_mode='Markdown'
-                )
+                await context.bot.send_photo(chat_id=update.effective_chat.id, photo=photo_file, caption=teks_ikan, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
         except FileNotFoundError:
-            await query.message.reply_text(f"{teks_ikan}\n*(Gambar tidak ditemukan)*", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
-
-    keyboard_back = [[InlineKeyboardButton("⬅️ Kembali", callback_data='start_back')]]
-    await query.message.reply_text("---", reply_markup=InlineKeyboardMarkup(keyboard_back))
+            await query.message.reply_text(f"{teks_ikan}\n*(File {v['foto']} tidak ditemukan)*", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+    await query.message.reply_text("---", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Kembali", callback_data='start_back')]]))
     return CHOOSING_FISH
 
 async def minta_jumlah(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -84,20 +57,16 @@ async def minta_jumlah(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     key = query.data.replace("beli_", "")
     context.user_data['ikan_dipilih'] = KATALOG[key]
-    await query.message.reply_text(f"🔢 Mau pesan berapa ekor **{KATALOG[key]['nama']}**?\n(Ketik angka saja, misal: 2)", parse_mode='Markdown')
+    await query.message.reply_text(f"🔢 Mau pesan berapa ekor **{KATALOG[key]['nama']}**?", parse_mode='Markdown')
     return ASKING_QUANTITY
 
 async def minta_alamat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.text.isdigit():
-        await update.message.reply_text("⚠️ Harap masukkan angka yang valid.")
+        await update.message.reply_text("⚠️ Masukkan angka saja.")
         return ASKING_QUANTITY
-    
-    qty = int(update.message.text)
-    context.user_data['qty'] = qty
-    ikan = context.user_data['ikan_dipilih']
-    context.user_data['total_harga'] = ikan['harga'] * qty
-    
-    await update.message.reply_text(f"✅ {qty} ekor dicatat.\n\n📍 **Alamat Pengiriman:**\nSilakan ketik alamat lengkap Anda:", parse_mode='Markdown')
+    context.user_data['qty'] = int(update.message.text)
+    context.user_data['total_harga'] = context.user_data['ikan_dipilih']['harga'] * context.user_data['qty']
+    await update.message.reply_text(f"📍 **Alamat Pengiriman:**\nKetik alamat lengkap Anda:", parse_mode='Markdown')
     return ASKING_ADDRESS
 
 async def minta_pembayaran(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -108,7 +77,6 @@ async def minta_pembayaran(update: Update, context: ContextTypes.DEFAULT_TYPE):
     alamat = context.user_data['alamat_user']
     waktu = datetime.now().strftime("%d/%m/%Y %H:%M")
 
-    # --- NOTA PEMESANAN UNTUK CUSTOMER --- zuber
     nota_teks = (
         f"📝 **NOTA PEMESANAN DIGITAL**\n"
         f"------------------------------------------\n"
@@ -120,47 +88,33 @@ async def minta_pembayaran(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"------------------------------------------\n"
         f"💰 **TOTAL TAGIHAN: Rp{total:,}**\n"
         f"📌 **Status:** MENUNGGU PEMBAYARAN\n\n"
-        f"Silakan transfer sesuai nominal di atas ke salah satu rekening berikut:\n\n"
-        f"🏦 **Bank:** `{NOREK_BANK}`\n"
-        f"📱 **DANA:** `{NOREK_DANA}`\n\n"
-        f"Setelah transfer, silakan klik tombol di bawah ini untuk konfirmasi."
+        f"Transfer ke:\n🏦 `{NOREK_BANK}`\n📱 `{NOREK_DANA}`"
     )
     
-    keyboard = [
-        [InlineKeyboardButton("✅ Sudah Transfer (Bank)", callback_data='pay_rekening')],
-        [InlineKeyboardButton("✅ Sudah Transfer (DANA)", callback_data='pay_dana')]
-    ]
+    keyboard = [[InlineKeyboardButton("✅ Sudah Transfer (Bank)", callback_data='pay_rekening')],
+                [InlineKeyboardButton("✅ Sudah Transfer (DANA)", callback_data='pay_dana')]]
     await update.message.reply_text(nota_teks, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
     return CHOOSING_PAYMENT
 
 async def konfirmasi_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
     ikan = context.user_data['ikan_dipilih']
     qty = context.user_data['qty']
     total = context.user_data['total_harga']
     alamat = context.user_data['alamat_user']
     metode = "Rekening" if query.data == 'pay_rekening' else "DANA"
     user = query.from_user
-    waktu = datetime.now().strftime("%d/%m/%Y %H:%M") # Perbaikan: Tambahkan waktu di sini
+    waktu = datetime.now().strftime("%d/%m/%Y %H:%M")
 
 
-    # Kirim NOTA / History ke Admin
+    # Notif Admin
     await context.bot.send_message(
         chat_id=ADMIN_ID,
-        text=f"🔔 **ORDER BARU MASUK**\n\n"
-             f"👤 User: {user.full_name} (@{user.username})\n"
-             f"🐠 Produk: {ikan['nama']}\n"
-             f"🔢 Qty: {qty}\n"
-             f"💰 Total: Rp{total:,}\n"
-             f"📍 Alamat: {alamat}\n"
-             f"💳 Metode: {metode}\n"
-             f"📌 Status: BELUM LUNAS",
+        text=f"🔔 **ORDER BARU MASUK**\n\nUser: {user.full_name}\nProduk: {ikan['nama']} ({qty}x)\nTotal: Rp{total:,}\nMetode: {metode}",
         parse_mode='Markdown'
     )
 
-    # Simpan nota final ke memory agar bisa dipanggil saat user klik "Lihat Nota"
     context.user_data['nota_final'] = (
         f"📝 **NOTA PEMESANAN DIGITAL**\n"
         f"------------------------------------------\n"
@@ -171,40 +125,24 @@ async def konfirmasi_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📍 **Alamat:** {alamat}\n"
         f"------------------------------------------\n"
         f"💰 **TOTAL TAGIHAN: Rp{total:,}**\n"
-        f"📌 **Status:** Silahkan hubungi admin untuk verifikasi.\n\n"
+        f"📌 **Status:** Menunggu Verifikasi Admin"
     )
 
-    # Menu Akhir (Nota & Hubungi Admin)
-    keyboard_selesai = [
-        [InlineKeyboardButton("📜 1. Lihat Nota", callback_data='lihat_nota_akhir')],
-        [InlineKeyboardButton("💬 2. Hubungi Admin", url='https://wa.me/6287828062625')] # <-- GANTI NOMOR WA DI SINI
-    ]
+    keyboard_selesai = [[InlineKeyboardButton("📜 1. Lihat Nota", callback_data='lihat_nota_akhir')],
+                        [InlineKeyboardButton("💬 2. Hubungi Admin", url='https://wa.me/6287828062625')]]
 
-    # Pesan Konfirmasi Akhir ke Customer -- aqil
-    await query.edit_message_text(
-        f"✅ **Konfirmasi Diterima!**\n\n"
-        f"Terima kasih {user.first_name}, pesanan Anda sebesar **Rp{total:,}** telah kami catat.\n"
-        f"Admin akan segera melakukan verifikasi pembayaran dan mengirimkan pesanan ke alamat Anda.\n\n"
-        f"Pilih menu di bawah ini:", 
-        reply_markup=InlineKeyboardMarkup(keyboard_selesai),
-        parse_mode='Markdown'
-    )
-    
-    # HAPUS context.user_data.clear() agar data nota tidak hilang
+    await query.edit_message_text(f"✅ **Konfirmasi Diterima!**\n\nTerima kasih {user.first_name}, pesanan Rp{total:,} telah dicatat.", 
+                                  reply_markup=InlineKeyboardMarkup(keyboard_selesai), parse_mode='Markdown')
     return ConversationHandler.END
 
-# --- FUNGSI BARU UNTUK MEMUNCULKAN NOTA ---
 async def tampilkan_nota_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
-    # Mengambil data nota yang sudah disimpan sebelumnya
-    nota = context.user_data.get('nota_final', "⚠️ Nota tidak ditemukan atau sesi telah berakhir. Silakan hubungi admin.")
+    nota = context.user_data.get('nota_final', "⚠️ Nota tidak ditemukan.")
     await query.message.reply_text(nota, parse_mode='Markdown')
 
 def main():
     app = Application.builder().token(TOKEN).build()
-
     conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(minta_jumlah, pattern='^beli_')],
         states={
@@ -214,17 +152,11 @@ def main():
         },
         fallbacks=[CommandHandler('start', start), CallbackQueryHandler(start, pattern='^start_back$')]
     )
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(menu_katalog, pattern='^lihat_katalog$'))
-    app.add_handler(CallbackQueryHandler(start, pattern='^start_back$'))
-    
-    # TAMBAHAN: Handler untuk merespon klik tombol "Lihat Nota"
     app.add_handler(CallbackQueryHandler(tampilkan_nota_akhir, pattern='^lihat_nota_akhir$'))
-    
     app.add_handler(conv_handler)
-
-    print("Bot Dreamland Fish v5.2 (Menu Akhir Aktif) 🚀")
+    print("Bot Dreamland Fish v5.5 (FIXED) 🚀")
     app.run_polling()
 
 if __name__ == '__main__':
