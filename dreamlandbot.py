@@ -37,7 +37,21 @@ KATALOG = {
     },
 }
 
-# --- 2. FUNGSI BOT ---iman
+# --- 2. FUNGSI GOOGLE SHEETS ---
+def catat_ke_sheet(nama, username, produk, qty, total, alamat, metode):
+    try:
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        creds = ServiceAccountCredentials.from_json_keyfile_name(JSON_FILE, scope)
+        client = gspread.authorize(creds)
+        sheet = client.open(SHEET_NAME).sheet1
+        waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        sheet.append_row([waktu, nama, f"@{username}", produk, qty, total, alamat, metode, "BELUM LUNAS"])
+        return True
+    except Exception as e:
+        print(f"Gagal mencatat ke Sheets: {e}")
+        return False
+
+# --- 3. FUNGSI BOT ---iman
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_name = update.effective_user.first_name
@@ -144,6 +158,7 @@ async def konfirmasi_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     alamat = context.user_data['alamat_user']
     metode = "Rekening" if query.data == 'pay_rekening' else "DANA"
     user = query.from_user
+    waktu = datetime.now().strftime("%d/%m/%Y %H:%M") # Perbaikan: Tambahkan waktu di sini
 
     # Simpan data ke Google Sheets
     catat_ke_sheet(user.full_name, user.username, ikan['nama'], qty, total, alamat, metode)
@@ -162,28 +177,47 @@ async def konfirmasi_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
-    # Pesan Konfirmasi Akhir ke Customer -- aqil
-    await query.edit_message_text(
-        f"✅ **Konfirmasi Diterima!**\n\n"
-        f"Terima kasih {user.first_name}, pesanan Anda sebesar **Rp{total:,}** telah kami catat.\n"
-        f"Admin akan segera melakukan verifikasi pembayaran dan mengirimkan pesanan ke alamat Anda.\n\n"
-        f"Simpan nota di atas sebagai bukti pemesanan Anda.", 
-        parse_mode='Markdown'
-    )
-    nota_teks = (
+    # Simpan nota final ke memory agar bisa dipanggil saat user klik "Lihat Nota"
+    context.user_data['nota_final'] = (
         f"📝 **NOTA PEMESANAN DIGITAL**\n"
         f"------------------------------------------\n"
         f"📅 **Waktu:** {waktu}\n"
-        f"👤 **Pembeli:** {update.effective_user.full_name}\n"
+        f"👤 **Pembeli:** {user.full_name}\n"
         f"📦 **Produk:** {ikan['nama']}\n"
         f"🔢 **Jumlah:** {qty} ekor\n"
         f"📍 **Alamat:** {alamat}\n"
         f"------------------------------------------\n"
         f"💰 **TOTAL TAGIHAN: Rp{total:,}**\n"
-        f"📌 **Status:**Silahkan hubingi admin \n\n"
+        f"📌 **Status:** Silahkan hubungi admin untuk verifikasi.\n\n"
     )
-    context.user_data.clear()
+
+    # Menu Akhir (Nota & Hubungi Admin)
+    keyboard_selesai = [
+        [InlineKeyboardButton("📜 1. Lihat Nota", callback_data='lihat_nota_akhir')],
+        [InlineKeyboardButton("💬 2. Hubungi Admin", url='https://wa.me/6287828062625')] # <-- GANTI NOMOR WA DI SINI
+    ]
+
+    # Pesan Konfirmasi Akhir ke Customer -- aqil
+    await query.edit_message_text(
+        f"✅ **Konfirmasi Diterima!**\n\n"
+        f"Terima kasih {user.first_name}, pesanan Anda sebesar **Rp{total:,}** telah kami catat.\n"
+        f"Admin akan segera melakukan verifikasi pembayaran dan mengirimkan pesanan ke alamat Anda.\n\n"
+        f"Pilih menu di bawah ini:", 
+        reply_markup=InlineKeyboardMarkup(keyboard_selesai),
+        parse_mode='Markdown'
+    )
+    
+    # HAPUS context.user_data.clear() agar data nota tidak hilang
     return ConversationHandler.END
+
+# --- FUNGSI BARU UNTUK MEMUNCULKAN NOTA ---
+async def tampilkan_nota_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    # Mengambil data nota yang sudah disimpan sebelumnya
+    nota = context.user_data.get('nota_final', "⚠️ Nota tidak ditemukan atau sesi telah berakhir. Silakan hubungi admin.")
+    await query.message.reply_text(nota, parse_mode='Markdown')
 
 def main():
     app = Application.builder().token(TOKEN).build()
@@ -201,9 +235,13 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(menu_katalog, pattern='^lihat_katalog$'))
     app.add_handler(CallbackQueryHandler(start, pattern='^start_back$'))
+    
+    # TAMBAHAN: Handler untuk merespon klik tombol "Lihat Nota"
+    app.add_handler(CallbackQueryHandler(tampilkan_nota_akhir, pattern='^lihat_nota_akhir$'))
+    
     app.add_handler(conv_handler)
 
-    print("Bot Dreamland Fish v5.1 (Nota Digital Aktif) 🚀")
+    print("Bot Dreamland Fish v5.2 (Menu Akhir Aktif) 🚀")
     app.run_polling()
 
 if __name__ == '__main__':
