@@ -1,3 +1,4 @@
+#-- import library ---
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
@@ -35,6 +36,7 @@ KATALOG = {
         "foto": "foto katalog/arowana.JPG"
     },
 }
+
 # --- 2. FUNGSI BOT ---iman
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -106,8 +108,8 @@ async def minta_pembayaran(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total = context.user_data['total_harga']
     alamat = context.user_data['alamat_user']
     waktu = datetime.now().strftime("%d/%m/%Y %H:%M")
-    
-# --- NOTA PEMESANAN UNTUK CUSTOMER --- zuber
+
+    # --- NOTA PEMESANAN UNTUK CUSTOMER --- zuber
     nota_teks = (
         f"📝 **NOTA PEMESANAN DIGITAL**\n"
         f"------------------------------------------\n"
@@ -159,3 +161,50 @@ async def konfirmasi_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
              f"📌 Status: BELUM LUNAS",
         parse_mode='Markdown'
     )
+
+    # Pesan Konfirmasi Akhir ke Customer -- aqil
+    await query.edit_message_text(
+        f"✅ **Konfirmasi Diterima!**\n\n"
+        f"Terima kasih {user.first_name}, pesanan Anda sebesar **Rp{total:,}** telah kami catat.\n"
+        f"Admin akan segera melakukan verifikasi pembayaran dan mengirimkan pesanan ke alamat Anda.\n\n"
+        f"Simpan nota di atas sebagai bukti pemesanan Anda.", 
+        parse_mode='Markdown'
+    )
+    nota_teks = (
+        f"📝 **NOTA PEMESANAN DIGITAL**\n"
+        f"------------------------------------------\n"
+        f"📅 **Waktu:** {waktu}\n"
+        f"👤 **Pembeli:** {update.effective_user.full_name}\n"
+        f"📦 **Produk:** {ikan['nama']}\n"
+        f"🔢 **Jumlah:** {qty} ekor\n"
+        f"📍 **Alamat:** {alamat}\n"
+        f"------------------------------------------\n"
+        f"💰 **TOTAL TAGIHAN: Rp{total:,}**\n"
+        f"📌 **Status:**Silahkan hubingi admin \n\n"
+    )
+    context.user_data.clear()
+    return ConversationHandler.END
+
+def main():
+    app = Application.builder().token(TOKEN).build()
+
+    conv_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(minta_jumlah, pattern='^beli_')],
+        states={
+            ASKING_QUANTITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, minta_alamat)],
+            ASKING_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, minta_pembayaran)],
+            CHOOSING_PAYMENT: [CallbackQueryHandler(konfirmasi_akhir, pattern='^pay_')]
+        },
+        fallbacks=[CommandHandler('start', start), CallbackQueryHandler(start, pattern='^start_back$')]
+    )
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(menu_katalog, pattern='^lihat_katalog$'))
+    app.add_handler(CallbackQueryHandler(start, pattern='^start_back$'))
+    app.add_handler(conv_handler)
+
+    print("Bot Dreamland Fish v5.1 (Nota Digital Aktif) 🚀")
+    app.run_polling()
+
+if __name__ == '__main__':
+    main()
