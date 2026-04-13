@@ -1,11 +1,13 @@
 import logging
 import asyncio
+from dotenv import load_dotenv
 from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, ConversationHandler, MessageHandler, filters
 
+load_dotenv()
 # --- 1. KONFIGURASI ---
-TOKEN = '8360782987:AAHq0sCk99_H_vq73HtTsPP91eVeRX7YoNA'
+TOKEN = os.getenv("TELEGRAM_TOKEN")
 ADMIN_ID = 8313481314 
 
 NOREK_BANK = "Bank BCA - 123456789 (A/N Dreamland)"
