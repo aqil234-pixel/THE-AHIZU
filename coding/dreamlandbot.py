@@ -22,12 +22,50 @@ NOREK_DANA = "DANA - 08123456789 (A/N Dreamland)"
 
 # State untuk ConversationHandler
 CHOOSING_FISH, ASKING_QUANTITY, ASKING_ADDRESS, CHOOSING_PAYMENT = range(4)
-
+# --- 1. PERBAIKAN KATALOG (TYPO FIX) ---
 KATALOG = {
     "betta": {"nama": "Ikan Cupang Nemo", "harga": 50000, "foto": "cupang.jpg"},
-    "guppy": {"nama": "Guppy Albino", "harga": 35000, "foto": "guppy.jpg"},
+    "guppy": {"nama": "Guppy Albino", "harga": 35000, "foto": "guppy.jpg"}, # Sudah jadi .jpg
     "arowana": {"nama": "Arwana Silver", "harga": 150000, "foto": "arowana.jpg"},
 }
+
+# --- 2. PERBAIKAN FUNGSI KIRIM FOTO ---
+async def menu_katalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    chat_id = update.effective_chat.id
+    
+    await send_typing_action(context, chat_id, 1.0)
+    await query.message.reply_text("📋 **KATALOG DREAMLANDFISH**", parse_mode='Markdown')
+    
+    for k, v in KATALOG.items():
+        teks_ikan = f"🔹 **{v['nama']}**\n   └ Harga: Rp{v['harga']:,}"
+        keyboard = [[InlineKeyboardButton(f"🛒 Pesan {v['nama']}", callback_data=f"beli_{k}")]]
+        
+        # Path absolut biar bot gak nyasar
+        foto_path = os.path.join(BASE_DIR, v['foto'])
+        
+        # Cek apakah file fisik beneran ada di folder
+        if os.path.exists(foto_path):
+            try:
+                with open(foto_path, 'rb') as photo_file:
+                    await context.bot.send_photo(
+                        chat_id=chat_id, 
+                        photo=photo_file, 
+                        caption=teks_ikan, 
+                        reply_markup=InlineKeyboardMarkup(keyboard), 
+                        parse_mode='Markdown'
+                    )
+            except Exception as e:
+                # Jika koneksi/proxy bermasalah pas kirim foto
+                print(f"Gagal kirim foto {v['foto']}: {e}")
+                await context.bot.send_message(chat_id=chat_id, text=f"{teks_ikan}\n*(Koneksi lambat, gambar gagal muat)*", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+        else:
+            # Jika file emang ga ada di folder
+            print(f"❌ FILE TIDAK DITEMUKAN: {foto_path}")
+            await context.bot.send_message(chat_id=chat_id, text=f"{teks_ikan}\n*(File {v['foto']} tidak ada di folder)*", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+            
+    return CHOOSING_FISH
 
 # --- FITUR ADVANCE 1: SIMULASI MENGETIK (TYPING EFFECT) ---
 async def send_typing_action(context: ContextTypes.DEFAULT_TYPE, chat_id: int, duration: float = 1.0):
