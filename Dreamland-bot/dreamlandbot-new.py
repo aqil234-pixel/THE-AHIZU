@@ -17,7 +17,7 @@ load_dotenv(dotenv_path)
 
 # --- KONFIGURASI UTAMA ---
 TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = 8313481314
+ADMIN_ID = os.getenv("ADMIN_ID")
 ADMIN_WA = os.getenv("ADMIN_WA")
 GROQ_API_KEY = os.getenv("API_KEY")
 groq_client = Groq(api_key=GROQ_API_KEY)
@@ -163,6 +163,7 @@ async def chat_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Gunakan bahasa gaul anak muda sehari-hari yang santai "
         "Hanya bahas seputar ikan hias sesuai yang di katalog , dan cara perawatan ikan."
         "bisa di ajak bercanda"
+        "jangan judes awali percakapan dengan salam dan ramah"
     )
     
     try:
@@ -417,7 +418,7 @@ def main():
     # 2. SATPAM TERAKHIR (AI HANDLER) WAJIB PALING BAWAH
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat_ai))
 
-    print("🚀 Bot Siap! Alur Pemesanan & Otak AI Aktif!")
+    print("🚀 Bot Siap!")
     app.run_polling()
 
 if __name__ == '__main__':
