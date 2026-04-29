@@ -14,10 +14,16 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 dotenv_path = os.path.join(BASE_DIR, '.env')
 load_dotenv(dotenv_path)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.ERROR, 
+    filename='bot_errors.log', 
+    filemode='a'
+)
 
 # --- KONFIGURASI UTAMA ---
 TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = os.getenv("ADMIN_ID")
+ADMIN_ID = int(os.getenv("ADMIN_ID")) if os.getenv("ADMIN_ID") else None
 ADMIN_WA = os.getenv("ADMIN_WA")
 GROQ_API_KEY = os.getenv("API_KEY")
 groq_client = Groq(api_key=GROQ_API_KEY)
@@ -27,7 +33,6 @@ NAMA_FOLDER_FOTO = "assets"
 PATH_FOTO_LENGKAP = os.path.join(BASE_DIR, NAMA_FOLDER_FOTO)
 
 # --- 2. DATABASE SEMENTARA (Memory) ---
-# Menyimpan data pesanan agar bisa diupdate Admin & dicek User
 DATABASE_ORDER = {}
 
 CHOOSING_FISH, ASKING_NAME, ASKING_ADDRESS, ASKING_QUANTITY, CHOOSING_PAYMENT = range(5)
@@ -66,7 +71,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🖼️ Lihat Katalog", callback_data='lihat_katalog')],
         [InlineKeyboardButton("🛒 Pesan Ikan", callback_data='lihat_katalog')],
-        [InlineKeyboardButton("🤖 Cara Chat dengan AI", callback_data='bantuan_ai')] # <-- TOMBOL BARU
+        [InlineKeyboardButton("🤖 Cara Chat dengan AI", callback_data='bantuan_ai')] 
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -367,21 +372,42 @@ async def admin_update_status(update: Update, context: ContextTypes.DEFAULT_TYPE
             DATABASE_ORDER[order_id]['status_barang'] = "🚀 SUDAH DIKIRIM"
             await query.edit_message_text(f"🚀 {order_id} telah di-set DIKIRIM.")
 
+
 async def batal_ke_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await start(update, context)
 
-# --- 5. MAIN ROUTING ---
+async def cek_bug_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if str(update.effective_user.id) != str(ADMIN_ID):
+        await update.message.reply_text("⛔ Akses ditolak!")
+        return
+    log_file = 'bot_errors.log'
+    if os.path.exists(log_file):
+        with open(log_file, 'rb') as f:
+            await context.bot.send_document(chat_id=update.effective_chat.id, document=f, caption="🐞 Laporan Bug")
+    else:
+        await update.message.reply_text("✅ Aman, belum ada bug.")
 
 # --- 5. MAIN ROUTING ---
 
 def main():
-    if not TOKEN or not GROQ_API_KEY:
-        print("❌ ERROR: TOKEN Bot atau API_KEY Groq tidak ada di .env")
+    if not TOKEN:
+        print("❌ TOKEN KOSONG!")
         return
 
+    # Inisialisasi app (CUKUP SATU KALI)
     app = Application.builder().token(TOKEN).build()
     
-    # SUTRADARA PEMESANAN (CONVERSATION HANDLER)
+    # --- DAFTAR HANDLER ---
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("cekbug", cek_bug_admin)) # <-- Menu baru kamu
+    
+    app.add_handler(CallbackQueryHandler(menu_katalog, pattern='^lihat_katalog$'))
+    app.add_handler(CallbackQueryHandler(tampilkan_deskripsi, pattern='^desc_'))
+    app.add_handler(CallbackQueryHandler(cek_status_order, pattern='^cekstatus_'))
+    app.add_handler(CallbackQueryHandler(admin_update_status, pattern='^(setlunas_|setkirim_)'))
+    app.add_handler(CallbackQueryHandler(bantuan_ai, pattern='^bantuan_ai$'))
+
+    # Setup Conversation (Fungsi Beli)
     conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(minta_nama, pattern='^beli_')],
         states={
@@ -395,31 +421,13 @@ def main():
         },
         fallbacks=[CommandHandler('start', start)]
     )
-    
-    # 1. DAFTARIN MENU DAN CONVERSATION DULU
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(menu_katalog, pattern='^lihat_katalog$'))
-    app.add_handler(CallbackQueryHandler(tampilkan_deskripsi, pattern='^desc_'))
-    app.add_handler(CallbackQueryHandler(cek_status_order, pattern='^cekstatus_'))
-    app.add_handler(CallbackQueryHandler(admin_update_status, pattern='^(setlunas_|setkirim_)'))
-    app.add_handler(CallbackQueryHandler(bantuan_ai, pattern='^bantuan_ai$')) # <-- Tombol AI
-    
-    # MASUKIN CONV HANDLER SEBELUM AI
     app.add_handler(conv_handler)
-    app = (
-        Application.builder()
-        .token(TOKEN)
-        .read_timeout(30)
-        .write_timeout(30)
-        .connect_timeout(30)
-        .pool_timeout(30)
-        .build()
-    )
-    # 2. SATPAM TERAKHIR (AI HANDLER) WAJIB PALING BAWAH
+
+    # Chat AI (Paling bawah agar tidak bentrok)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat_ai))
 
-    print("🚀 Bot Siap!")
+    print("🚀 Bot Dreamland RUNNING...")
     app.run_polling()
-
+    
 if __name__ == '__main__':
     main()
