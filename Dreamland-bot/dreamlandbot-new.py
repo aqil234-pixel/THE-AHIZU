@@ -2,6 +2,9 @@ import os
 import logging
 import asyncio
 import random
+import socket
+import time
+import psutil
 from dotenv import load_dotenv
 from groq import Groq
 from datetime import datetime
@@ -74,6 +77,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🤖 Cara Chat dengan AI", callback_data='bantuan_ai')] 
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
+
+# --- LOGIKA KHUSUS ADMIN ---
+    
+    if str(user_id) == str(ADMIN_ID):
+        keyboard.append([InlineKeyboardButton("🐞 CEK BUG (Admin Only)", callback_data="admin_cek_bug")])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    # Jika dipanggil via command /start
+    if update.message:
+        await update.message.reply_text(
+            "🐟 *Selamat Datang di Dreamlandfish!*\nAda yang bisa Bony bantu hari ini?",
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+    # Jika dipanggil via tombol 'Back'
+    elif update.callback_query:
+        await update.callback_query.edit_message_text(
+            "🐟 *Menu Utama Dreamlandfish*",
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     nama_file_logo = os.path.join(BASE_DIR, "assets", "logo_dream.jpg")
@@ -376,17 +401,69 @@ async def admin_update_status(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def batal_ke_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await start(update, context)
 
-async def cek_bug_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if str(update.effective_user.id) != str(ADMIN_ID):
-        await update.message.reply_text("⛔ Akses ditolak!")
-        return
-    log_file = 'bot_errors.log'
-    if os.path.exists(log_file):
-        with open(log_file, 'rb') as f:
-            await context.bot.send_document(chat_id=update.effective_chat.id, document=f, caption="🐞 Laporan Bug")
-    else:
-        await update.message.reply_text("✅ Aman, belum ada bug.")
+def check_connectivity(host="8.8.8.8", port=53, timeout=3):
+    """Cek apakah bot bisa 'melihat' internet luar"""
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return "✅ ONLINE"
+    except Exception:
+        return "❌ OFFLINE"
 
+async def get_bot_diagnostics():
+    """Bikin teks laporan ala terminal VS Code"""
+    start_time = time.time()
+    
+    # Cek Jaringan
+    tg_status = check_connectivity("api.telegram.org", 443)
+    google_status = check_connectivity("google.com", 80)
+    
+    # Hitung Latency (ping sederhana)
+    latency = round((time.time() - start_time) * 1000, 2)
+    
+    # Cek Kapasitas Log
+    log_size = "0 KB"
+    if os.path.exists('bot_errors.log'):
+        log_size = f"{os.path.getsize('bot_errors.log') / 1024:.2f} KB"
+
+    # Template laporan ala Terminal
+    report = (
+        "<code>[DREAMLAND DIAGNOSTICS]</code>\n"
+        "<code>------------------------</code>\n"
+        f"🌐 <b>Telegram API:</b> <code>{tg_status}</code>\n"
+        f"🌍 <b>Google DNS:</b>   <code>{google_status}</code>\n"
+        f"⚡ <b>Latency:</b>      <code>{latency}ms</code>\n"
+        f"📁 <b>Log Size:</b>     <code>{log_size}</code>\n"
+        f"🤖 <b>AI Status:</b>     <code>{'READY' if GROQ_API_KEY else 'MISSING'}</code>\n"
+        "<code>------------------------</code>\n"
+        f"⏰ <b>Server Time:</b> <code>{datetime.now().strftime('%H:%M:%S')}</code>"
+    )
+    return report
+
+async def admin_cek_bug_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    if str(update.effective_user.id) != str(ADMIN_ID):
+        await query.message.reply_text("⛔ Restricted Area!")
+        return
+
+    # 1. Kirim Laporan Diagnostik (Teks ala Terminal)
+    status_report = await get_bot_diagnostics()
+    await query.message.reply_text(status_report, parse_mode="HTML")
+
+    # 2. Kirim File Log (Jika ada error)
+    log_file = 'bot_errors.log'
+    if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
+        with open(log_file, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=f,
+                caption="📄 <b>Full Error Log</b>",
+                parse_mode="HTML"
+            )
+    else:
+        await query.message.reply_text("✨ <b>Terminal Clean:</b> No errors detected.")
 # --- 5. MAIN ROUTING ---
 
 def main():
@@ -399,7 +476,7 @@ def main():
     
     # --- DAFTAR HANDLER ---
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("cekbug", cek_bug_admin)) # <-- Menu baru kamu
+    app.add_handler(CallbackQueryHandler(admin_cek_bug_callback, pattern='^admin_cek_bug$'))
     
     app.add_handler(CallbackQueryHandler(menu_katalog, pattern='^lihat_katalog$'))
     app.add_handler(CallbackQueryHandler(tampilkan_deskripsi, pattern='^desc_'))
