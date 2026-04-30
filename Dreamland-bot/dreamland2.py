@@ -104,7 +104,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append([InlineKeyboardButton("🐞 CEK BUG (Admin Only)", callback_data="admin_cek_bug")])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    logo_path = os.path.join(PATH_FOTO_LENGKAP, "logo_dream.jpg")
+    logo_path = os.path.join(PATH_FOTO_LENGKAP, "logo_dream.PNG")
 
     # Logika pengiriman (jika logo ada pake foto, kalo ga ada pake teks)
     if os.path.exists(logo_path):
