@@ -486,6 +486,19 @@ def main():
     app.add_handler(CallbackQueryHandler(admin_update_status, pattern='^(setlunas_|setkirim_)'))
     app.add_handler(CallbackQueryHandler(bantuan_ai, pattern='^bantuan_ai$'))
 
+    admin_stok_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_pilih_ikan_stok, pattern='^admin_update_stok$')],
+        states={
+            ADMIN_UPDATE_STOK_INPUT: [
+                CallbackQueryHandler(admin_input_stok, pattern='^upstok_'),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, admin_simpan_stok)
+            ],
+        },
+        fallbacks=[CommandHandler('start', start), CallbackQueryHandler(start, pattern='^start_back$')],
+        allow_reentry=True
+    )
+    app.add_handler(admin_stok_conv)
+
     # Alur Pesanan (Conversation)
     conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(minta_nama, pattern='^beli_')],
