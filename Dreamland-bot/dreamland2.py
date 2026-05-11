@@ -87,7 +87,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- LOGIKA KHUSUS ADMIN ---
     if ADMIN_ID and str(user_id) == str(ADMIN_ID):
         keyboard.append([InlineKeyboardButton("🐞 CEK BUG (Admin Only)", callback_data="admin_cek_bug")])
-    
+        keyboard.append([InlineKeyboardButton("📦 Update Stok Ikan", callback_data="admin_update_stok")])
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     # --- LOGIKA MUNCULIN GAMBAR LOGO ---
