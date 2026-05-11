@@ -45,23 +45,27 @@ KATALOG = {
         "nama": "Ikan Cupang Nemo", 
         "harga": 50000, 
         "foto": "cupang.jpg", 
-        "deskripsi": "Ikan cupang hias dengan corak warna-warni mirip ikan badut (Nemo). Lincah, sehat, dan warna tembus!" # <-- Baris baru
+        "stok": 10, # <-- Tambah ini
+        "deskripsi": "..." 
     },
-    
     "guppy": {
         "nama": "Guppy Albino", 
         "harga": 35000, 
         "foto": "guppy.jpg",
-        "deskripsi": "Ikan guppy mata merah (albino) grade A dengan ekor lebar yang indah. Perawatan sangat mudah."
+        "stok": 20, # <-- Tambah ini
+        "deskripsi": "..."
     },
-    
     "arowana": {
         "nama": "Arwana Silver", 
         "harga": 150000, 
         "foto": "arowana.jpg", 
-        "deskripsi": "Arwana silver anakan ukuran 10-15cm. Ikan predator eksotis, makan rakus dan lincah."
+        "stok": 5, # <-- Tambah ini
+        "deskripsi": "..."
     },
 }
+
+# Tambahkan state baru untuk Admin di bawah state yang sudah ada
+ADMIN_UPDATE_STOK_PILIH, ADMIN_UPDATE_STOK_INPUT = range(10, 12)
 
 # --- 3. ALUR CLIENT (USER) ---
 
