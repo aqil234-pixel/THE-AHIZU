@@ -134,7 +134,7 @@ async def menu_katalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for k, v in KATALOG.items():
         foto_path = os.path.join(PATH_FOTO_LENGKAP, v['foto'])
-        teks_ikan = f"🔹 **{v['nama']}**\n💰 Harga: Rp{v['harga']:,}"
+        teks_ikan = f"🔹 **{v['nama']}**\n💰 Harga: Rp{v['harga']:,}\n📦 Stok: {v.get('stok', 0)} ekor"
         
         # Tombol di bawah gambar
         keyboard = [
