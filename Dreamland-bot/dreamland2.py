@@ -470,6 +470,49 @@ async def admin_cek_bug_callback(update: Update, context: ContextTypes.DEFAULT_T
         await query.message.reply_text("✨ <b>Terminal Clean:</b> No errors detected.")
 # --- 5. MAIN ROUTING ---
 
+async def admin_pilih_ikan_stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    keyboard = []
+    for k, v in KATALOG.items():
+        # Menampilkan stok saat ini di tombol pilihan
+        keyboard.append([InlineKeyboardButton(f"{v['nama']} (Stok: {v.get('stok', 0)})", callback_data=f"upstok_{k}")])
+    
+    keyboard.append([InlineKeyboardButton("🔙 Kembali ke Menu Utama", callback_data="start_back")])
+    
+    await query.edit_message_text("🛠 **ADMIN MODE: UPDATE STOK**\nPilih ikan yang ingin diubah jumlah stoknya:", 
+                                  reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+    return ADMIN_UPDATE_STOK_INPUT
+
+async def admin_input_stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    # Mengambil key ikan (misal: 'betta') dari callback_data
+    ikan_key = query.data.replace("upstok_", "")
+    context.user_data['edit_ikan_key'] = ikan_key
+    await query.answer()
+    
+    await query.edit_message_text(f"🔢 Masukkan jumlah stok baru untuk **{KATALOG[ikan_key]['nama']}**:", parse_mode='Markdown')
+    return ADMIN_UPDATE_STOK_INPUT
+
+async def admin_simpan_stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if not text.isdigit():
+        await update.message.reply_text("⚠️ Harap masukkan angka saja (contoh: 15)!")
+        return ADMIN_UPDATE_STOK_INPUT
+    
+    ikan_key = context.user_data.get('edit_ikan_key')
+    stok_baru = int(text)
+    
+    if ikan_key in KATALOG:
+        KATALOG[ikan_key]['stok'] = stok_baru
+        await update.message.reply_text(f"✅ Stok **{KATALOG[ikan_key]['nama']}** berhasil diupdate menjadi **{stok_baru}** ekor.")
+    
+    context.user_data.clear()
+    # Kembali ke tampilan awal admin
+    return await start(update, context)
+
+# --- LOGIKA UPDATE STOK (ADMIN) ---
 def main():
     if not TOKEN:
         print("❌ TOKEN KOSONG!")
