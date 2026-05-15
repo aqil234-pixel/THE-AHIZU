@@ -124,6 +124,46 @@ async def bantuan_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Ini bakal ngeluarin pop-up buat ngasih tau cara pakainya
     await query.answer(text="💡 CARA PENGGUNAAN:\n\nNggak perlu klik menu apa-apa, Kak! Langsung aja ketik pertanyaan Kakak. Nanti AI kami bakal otomatis balas! 🤖✨", show_alert=True)
 
+async def info_toko(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    teks_info = (
+        "🏪 *INFORMASI TOKO DREAMLANDFISH*\n"
+        "━━━━━━━━━━━━━━━\n"
+        "🐟 Nama Toko: Dreamlandfish\n\n"
+        
+        "📍 *Alamat Toko:*\n"
+        "Sumberan, Sumberagung, Moyudan,\n"
+        "Sleman Regency, Special Region of Yogyakarta 55563\n\n"
+        
+        "🕒 *Jam Operasional:*\n"
+        "Setiap Hari : 08.00 - 21.00 WIB\n\n"
+        
+        "📱 *Kontak Admin:*\n"
+        "0878-2806-2625\n\n"
+        
+        "📸 *Instagram:*\n"
+        "@dreamlandfish.myd\n\n"
+        
+        "📝 *Tentang Toko:*\n"
+        "Menyediakan berbagai macam ikan hias seperti Guppy, Platy, Molly, Cupang, Channa, dan lainnya.\n\n"
+        
+        "✨ Terima kasih telah mengunjungi Dreamlandfish!"
+    )
+
+    keyboard = [
+        [InlineKeyboardButton("📍 Buka Google Maps", url="https://maps.app.goo.gl/1K42MZYKGXGAqiHy6")],
+        [InlineKeyboardButton("💬 Chat Admin", url="https://wa.me/6287828062625")],
+        [InlineKeyboardButton("🔙 Kembali ke Menu", callback_data="start_back")]
+    ]
+
+    await query.message.reply_text(
+        teks_info,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode='Markdown'
+    )
+
 async def menu_katalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
