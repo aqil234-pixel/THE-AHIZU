@@ -81,7 +81,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🖼️ Lihat Katalog", callback_data='lihat_katalog')],
         [InlineKeyboardButton("🛒 Pesan Ikan", callback_data='lihat_katalog')],
-        [InlineKeyboardButton("🤖 Cara Chat dengan AI", callback_data='bantuan_ai')] 
+        [InlineKeyboardButton("🏪 Informasi Toko", callback_data='info_toko')],
+        [InlineKeyboardButton("🤖 Cara Chat dengan AI", callback_data='bantuan_ai')]
+        
     ]
     
     # --- LOGIKA KHUSUS ADMIN ---
