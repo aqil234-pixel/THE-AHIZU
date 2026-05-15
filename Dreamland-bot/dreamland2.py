@@ -571,6 +571,7 @@ def main():
     app.add_handler(CallbackQueryHandler(cek_status_order, pattern='^cekstatus_'))
     app.add_handler(CallbackQueryHandler(admin_update_status, pattern='^(setlunas_|setkirim_)'))
     app.add_handler(CallbackQueryHandler(bantuan_ai, pattern='^bantuan_ai$'))
+    app.add_handler(CallbackQueryHandler(info_toko, pattern='^info_toko$'))
 
     admin_stok_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_pilih_ikan_stok, pattern='^admin_update_stok$')],
