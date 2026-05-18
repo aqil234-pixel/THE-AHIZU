@@ -466,8 +466,9 @@ async def get_bot_diagnostics():
     latency = round((time.time() - start_time) * 1000, 2)
     
     log_size = "0 KB"
-    if os.path.exists('bot_errors.log'):
-        log_size = f"{os.path.getsize('bot_errors.log') / 1024:.2f} KB"
+    log_path = os.path.join(BASE_DIR, 'bot_errors.log')
+    if os.path.exists(log_path):
+        log_size = f"{os.path.getsize(log_path) / 1024:.2f} KB"
 
     report = (
         "<code>[DREAMLAND DIAGNOSTICS]</code>\n"
@@ -482,28 +483,32 @@ async def get_bot_diagnostics():
     )
     return report
 
+# --- FITUR CEK BUG & DOWNLOAD LOG FILE ---
 async def admin_cek_bug_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    if str(update.effective_user.id) != str(ADMIN_ID):
+    if not ADMIN_ID or str(update.effective_user.id) != str(ADMIN_ID):
         await query.message.reply_text("⛔ Restricted Area!")
         return
 
+    # Kirim diagnosistem awal ke chat
     status_report = await get_bot_diagnostics()
     await query.message.reply_text(status_report, parse_mode="HTML")
 
-    log_file = 'bot_errors.log'
-    if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
-        with open(log_file, 'rb') as f:
+    log_file_path = os.path.join(BASE_DIR, 'bot_errors.log')
+    
+    # Periksa apakah file log tersedia dan berisi data error
+    if os.path.exists(log_file_path) and os.path.getsize(log_file_path) > 0:
+        with open(log_file_path, 'rb') as f:
             await context.bot.send_document(
                 chat_id=update.effective_chat.id,
                 document=f,
-                caption="📄 <b>Full Error Log</b>",
+                caption="📄 <b>Ini File Log Error Bot Anda. Silakan diunduh untuk dibaca.</b>",
                 parse_mode="HTML"
             )
     else:
-        await query.message.reply_text("✨ <b>Terminal Clean:</b> No errors detected.")
+        await query.message.reply_text("✨ <b>Terminal Clean:</b> Tidak ditemukan rekaman file error log saat ini.")
 
 # --- FITUR ADMIN UPDATE STOK ---
 async def admin_pilih_ikan_stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
