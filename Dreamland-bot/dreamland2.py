@@ -59,6 +59,7 @@ DATABASE_ORDER = {}
 CHOOSING_FISH, ASKING_NAME, ASKING_ADDRESS, ASKING_QUANTITY, CHOOSING_PAYMENT = range(5)
 ADMIN_UPDATE_STOK_PILIH, ADMIN_UPDATE_STOK_INPUT = range(10, 12)
 
+# Global DATA KATALOG yang bisa di-update stoknya
 KATALOG = {
     "betta": {
         "nama": "Ikan Cupang Nemo", 
@@ -79,7 +80,7 @@ KATALOG = {
         "harga": 150000, 
         "foto": "arowana.jpg", 
         "stok": 5,
-        "deskripsi": "Ikan predator eksotis berukuran sedang. Melambangkan keberuntungan dan kemewahan."
+        "deskripsi": "Ikan predator exotic berukuran sedang. Melambangkan keberuntungan dan kemewahan."
     },
 }
 
@@ -109,6 +110,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     logo_path = os.path.join(PATH_FOTO_LENGKAP, "logo_dream.jpg")
 
+    # Deteksi jika dipanggil dari text message atau callback button
     if update.message:
         if os.path.exists(logo_path):
             with open(logo_path, 'rb') as photo:
@@ -159,7 +161,7 @@ async def info_toko(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     keyboard = [
-        [InlineKeyboardButton("📍 Buka Google Maps", url="https://maps.google.com")],
+        [InlineKeyboardButton("📍 Buka Google Maps", url="https://maps.google.com/?q=Dreamlandfish+Moyudan")],
         [InlineKeyboardButton("💬 Chat Admin", url=f"https://wa.me/{ADMIN_WA if ADMIN_WA else ''}")],
         [InlineKeyboardButton("🔙 Kembali ke Menu", callback_data="start_back")]
     ]
@@ -179,11 +181,13 @@ async def menu_katalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except: 
         pass
     
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="📋 **KATALOG KAMI:**", parse_mode='Markdown')
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="📋 **KATALOG LIVE STOK KAMI:**", parse_mode='Markdown')
     
     for k, v in KATALOG.items():
         foto_path = os.path.join(PATH_FOTO_LENGKAP, v['foto'])
-        teks_ikan = f"🔹 **{v['nama']}**\n💰 Harga: Rp{v['harga']:,}\n📦 Stok: {v.get('stok', 0)} ekor"
+        
+        # Sisa stok dinamis yang diambil langsung dari database KATALOG global
+        teks_ikan = f"🔹 **{v['nama']}**\n💰 Harga: Rp{v['harga']:,}\n📦 Sisa Stok: *{v.get('stok', 0)} ekor*"
         
         keyboard = [
             [InlineKeyboardButton("📖 Lihat Deskripsi", callback_data=f"desc_{k}")],
@@ -224,7 +228,7 @@ async def chat_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pesan_user = update.message.text
     daftar_produk = ""
     for k, v in KATALOG.items():
-        daftar_produk += f"- {v['nama']}: Rp{v['harga']:,} ({v['deskripsi']})\n"
+        daftar_produk += f"- {v['nama']}: Rp{v['harga']:,} (Sisa Stok: {v['stok']}) - {v['deskripsi']}\n"
 
     system_prompt = f"""
 Kamu adalah 'gammy', asisten admin toko ikan 'Dreamlandfish.myd'. 
@@ -267,6 +271,7 @@ async def minta_nama(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     key = query.data.replace("beli_", "")
+    context.user_data['ikan_key_dipilih'] = key
     context.user_data['ikan_dipilih'] = KATALOG[key]
     
     await query.message.reply_text(f"📝 Anda akan memesan **{KATALOG[key]['nama']}**.\n\nSilakan ketik Nama Lengkap Anda:", parse_mode='Markdown')
@@ -293,7 +298,6 @@ async def minta_jumlah(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ]
     
-    # PERBAIKAN: Menggunakan triple quotes agar multi-baris aman dari SyntaxError
     teks = """🔢 **Pilih Jumlah Pesanan:**
 
 _( SILAHKAN BUAT PESANAN )_"""
@@ -315,6 +319,15 @@ async def minta_pembayaran(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("⚠️ Masukkan angka yang valid!")
             return ASKING_QUANTITY
         jumlah = int(update.message.text)
+
+    # Validasi jika pesanan melebihi sisa stok yang tersedia
+    stok_tersedia = context.user_data['ikan_dipilih']['stok']
+    if jumlah > stok_tersedia:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, 
+            text=f"❌ Maaf, jumlah pesanan ({jumlah} ekor) melebihi sisa stok yang tersedia ({stok_tersedia} ekor).\n\nSilakan masukkan kembali jumlah yang sesuai:"
+        )
+        return ASKING_QUANTITY
 
     context.user_data['qty'] = jumlah
     total_harga = context.user_data['ikan_dipilih']['harga'] * context.user_data['qty']
@@ -348,12 +361,18 @@ async def buat_nota_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     order_id = f"ORD-{random.randint(1000, 9999)}"
+    ikan_key = context.user_data['ikan_key_dipilih']
+    qty_beli = context.user_data['qty']
+
+    # POTONG STOK DI KATALOG UTAMA SECARA OTOMATIS
+    if KATALOG[ikan_key]['stok'] >= qty_beli:
+        KATALOG[ikan_key]['stok'] -= qty_beli
     
     DATABASE_ORDER[order_id] = {
         'nama': context.user_data['nama_user'],
         'alamat': context.user_data['alamat_user'],
         'ikan': context.user_data['ikan_dipilih']['nama'],
-        'qty': context.user_data['qty'],
+        'qty': qty_beli,
         'total': context.user_data['total_harga'],
         'status_bayar': "⏳ Menunggu Verifikasi",
         'status_barang': "📦 Sedang Diproses"
@@ -370,7 +389,7 @@ async def buat_nota_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"━━━━━━━━━━━━━━━━━━\n"
         f"💳 Status Bayar: {DATABASE_ORDER[order_id]['status_bayar']}\n"
         f"🚚 Status Barang: {DATABASE_ORDER[order_id]['status_barang']}\n\n"
-        f"✨ _Terima kasih telah berbelanja di DreamlandFish!_"
+        f"✨ _Terima kasih telah berbelanja di DreamlandFish! Sisa stok produk otomatis diperbarui._"
     )
     
     keyboard_nota = [
@@ -383,13 +402,13 @@ async def buat_nota_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Notifikasi ke Admin
     if ADMIN_ID:
-        admin_notif = f"🚨 **ORDER BARU MASUK!** 🚨\nID: {order_id}\nNama: {DATABASE_ORDER[order_id]['nama']}\nTotal: Rp{DATABASE_ORDER[order_id]['total']:,}"
+        admin_notif = f"🚨 **ORDER BARU MASUK!** 🚨\nID: {order_id}\nNama: {DATABASE_ORDER[order_id]['nama']}\nTotal: Rp{DATABASE_ORDER[order_id]['total']:,}\n*Stok otomatis terpotong di sistem.*"
         admin_keyboard = [
             [InlineKeyboardButton("✅ Konfirmasi Lunas", callback_data=f"setlunas_{order_id}")],
             [InlineKeyboardButton("🚚 Kirim Barang", callback_data=f"setkirim_{order_id}")]
         ]
         try:
-            await context.bot.send_message(chat_id=ADMIN_ID, text=admin_notif, reply_markup=InlineKeyboardMarkup(admin_keyboard))
+            await context.bot.send_message(chat_id=ADMIN_ID, text=admin_notif, reply_markup=InlineKeyboardMarkup(admin_keyboard), parse_mode='Markdown')
         except: 
             pass
     
@@ -493,11 +512,12 @@ async def admin_pilih_ikan_stok(update: Update, context: ContextTypes.DEFAULT_TY
     
     keyboard = []
     for k, v in KATALOG.items():
+        # Menampilkan nama ikan beserta sisa stok yang aktif saat ini
         keyboard.append([InlineKeyboardButton(f"{v['nama']} (Stok: {v.get('stok', 0)})", callback_data=f"upstok_{k}")])
     
     keyboard.append([InlineKeyboardButton("🔙 Kembali ke Menu Utama", callback_data="start_back")])
     
-    await query.edit_message_text("🛠 **ADMIN MODE: UPDATE STOK**\nPilih ikan yang ingin diubah jumlah stoknya:", 
+    await query.edit_message_text("🛠 **ADMIN MODE: UPDATE STOK**\nPilih produk ikan yang ingin diubah jumlah sisa stoknya:", 
                                   reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
     return ADMIN_UPDATE_STOK_INPUT
 
@@ -507,23 +527,26 @@ async def admin_input_stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['edit_ikan_key'] = ikan_key
     await query.answer()
     
-    await query.edit_message_text(f"🔢 Masukkan jumlah stok baru untuk **{KATALOG[ikan_key]['nama']}**:", parse_mode='Markdown')
+    await query.edit_message_text(f"🔢 Masukkan angka jumlah stok baru untuk **{KATALOG[ikan_key]['nama']}** (Stok saat ini: {KATALOG[ikan_key]['stok']}):", parse_mode='Markdown')
     return ADMIN_UPDATE_STOK_INPUT
 
 async def admin_simpan_stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if not text.isdigit():
-        await update.message.reply_text("⚠️ Harap masukkan angka saja (contoh: 15)!")
+        await update.message.reply_text("⚠️ Harap masukkan angka bulat saja (contoh: 25)!")
         return ADMIN_UPDATE_STOK_INPUT
     
     ikan_key = context.user_data.get('edit_ikan_key')
     stok_baru = int(text)
     
     if ikan_key in KATALOG:
+        # Menyimpan secara permanen ke dictionary KATALOG global
         KATALOG[ikan_key]['stok'] = stok_baru
-        await update.message.reply_text(f"✅ Stok **{KATALOG[ikan_key]['nama']}** berhasil diupdate menjadi **{stok_baru}** ekor.")
+        await update.message.reply_text(f"✅ Berhasil! Stok **{KATALOG[ikan_key]['nama']}** sekarang diupdate menjadi **{stok_baru}** ekor dan langsung aktif di katalog live user.")
     
     context.user_data.clear()
+    
+    # Kembali ke menu start awal admin
     return await start(update, context)
 
 # --- MAIN ENGINE ---
