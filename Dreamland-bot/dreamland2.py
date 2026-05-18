@@ -10,64 +10,80 @@ from groq import Groq
 from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction
-from telegram.ext import MessageHandler, filters
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, ConversationHandler, MessageHandler, filters
+from telegram.ext import (
+    Application, 
+    CommandHandler, 
+    CallbackQueryHandler, 
+    ContextTypes, 
+    ConversationHandler, 
+    MessageHandler, 
+    filters
+)
 
-
+# --- KONFIGURASI PATH & ENV ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 dotenv_path = os.path.join(BASE_DIR, '.env')
 load_dotenv(dotenv_path)
+
+# Setup Logging Error ke File
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.ERROR, 
-    filename='bot_errors.log', 
+    filename=os.path.join(BASE_DIR, 'bot_errors.log'), 
     filemode='a'
 )
 
 # --- KONFIGURASI UTAMA ---
 TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = int(os.getenv("ADMIN_ID")) if os.getenv("ADMIN_ID") else None
+
+# Proteksi jika ADMIN_ID kosong atau bukan angka agar bot tidak crash saat start
+try:
+    ADMIN_ID = int(os.getenv("ADMIN_ID")) if os.getenv("ADMIN_ID") else None
+except ValueError:
+    ADMIN_ID = None
+    print("⚠️ WARNING: ADMIN_ID di Environment Variables bukan angka yang valid!")
+
 ADMIN_WA = os.getenv("ADMIN_WA")
 GROQ_API_KEY = os.getenv("API_KEY")
-groq_client = Groq(api_key=GROQ_API_KEY)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Inisialisasi Client Groq jika API Key tersedia
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+
 NAMA_FOLDER_FOTO = "assets" 
 PATH_FOTO_LENGKAP = os.path.join(BASE_DIR, NAMA_FOLDER_FOTO)
 
-# --- 2. DATABASE SEMENTARA (Memory) ---
+# --- DATABASE SEMENTARA (Memory) ---
 DATABASE_ORDER = {}
 
+# States untuk Conversation Handler
 CHOOSING_FISH, ASKING_NAME, ASKING_ADDRESS, ASKING_QUANTITY, CHOOSING_PAYMENT = range(5)
+ADMIN_UPDATE_STOK_PILIH, ADMIN_UPDATE_STOK_INPUT = range(10, 12)
 
 KATALOG = {
     "betta": {
         "nama": "Ikan Cupang Nemo", 
         "harga": 50000, 
         "foto": "cupang.jpg", 
-        "stok": 10, # <-- Tambah ini
-        "deskripsi": "..." 
+        "stok": 10,
+        "deskripsi": "Ikan cupang hias dengan corak warna-warni mirip ikan nemo. Agresif dan lincah." 
     },
     "guppy": {
         "nama": "Guppy Albino", 
         "harga": 35000, 
         "foto": "guppy.jpg",
-        "stok": 20, # <-- Tambah ini
-        "deskripsi": "..."
+        "stok": 20,
+        "deskripsi": "Ikan guppy anggun berwarna putih kemerahan (albino). Sangat cocok untuk aquascape."
     },
     "arowana": {
         "nama": "Arwana Silver", 
         "harga": 150000, 
         "foto": "arowana.jpg", 
-        "stok": 5, # <-- Tambah ini
-        "deskripsi": "..."
+        "stok": 5,
+        "deskripsi": "Ikan predator eksotis berukuran sedang. Melambangkan keberuntungan dan kemewahan."
     },
 }
 
-# Tambahkan state baru untuk Admin di bawah state yang sudah ada
-ADMIN_UPDATE_STOK_PILIH, ADMIN_UPDATE_STOK_INPUT = range(10, 12)
-
-# --- 3. ALUR CLIENT (USER) ---
+# --- ALUR CLIENT (USER) ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id 
@@ -83,20 +99,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🛒 Pesan Ikan", callback_data='lihat_katalog')],
         [InlineKeyboardButton("🏪 Informasi Toko", callback_data='info_toko')],
         [InlineKeyboardButton("🤖 Cara Chat dengan AI", callback_data='bantuan_ai')]
-        
     ]
     
     # --- LOGIKA KHUSUS ADMIN ---
     if ADMIN_ID and str(user_id) == str(ADMIN_ID):
         keyboard.append([InlineKeyboardButton("🐞 CEK BUG (Admin Only)", callback_data="admin_cek_bug")])
         keyboard.append([InlineKeyboardButton("📦 Update Stok Ikan", callback_data="admin_update_stok")])
+        
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    # --- LOGIKA MUNCULIN GAMBAR LOGO ---
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    logo_path = os.path.join(BASE_DIR, "assets", "logo_dream.jpg")
+    logo_path = os.path.join(PATH_FOTO_LENGKAP, "logo_dream.jpg")
 
-    # Eksekusi pengiriman pesan (Bisa kirim Logo + Teks sekaligus)
     if update.message:
         if os.path.exists(logo_path):
             with open(logo_path, 'rb') as photo:
@@ -107,21 +119,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         query = update.callback_query
         await query.answer()
-        # Hapus pesan sebelumnya agar chat bersih
-        try: await query.delete_message()
-        except: pass
+        try: 
+            await query.delete_message()
+        except: 
+            pass
             
         if os.path.exists(logo_path):
-             with open(logo_path, 'rb') as photo:
+            with open(logo_path, 'rb') as photo:
                 await context.bot.send_photo(chat_id=update.effective_chat.id, photo=photo, caption=teks, reply_markup=reply_markup, parse_mode='Markdown')
         else:
-             await context.bot.send_message(chat_id=update.effective_chat.id, text=teks, reply_markup=reply_markup, parse_mode='Markdown')
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=teks, reply_markup=reply_markup, parse_mode='Markdown')
 
     return ConversationHandler.END
 
 async def bantuan_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    # Ini bakal ngeluarin pop-up buat ngasih tau cara pakainya
     await query.answer(text="💡 CARA PENGGUNAAN:\n\nNggak perlu klik menu apa-apa, Kak! Langsung aja ketik pertanyaan Kakak. Nanti AI kami bakal otomatis balas! 🤖✨", show_alert=True)
 
 async def info_toko(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -132,29 +144,23 @@ async def info_toko(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🏪 *INFORMASI TOKO DREAMLANDFISH*\n"
         "━━━━━━━━━━━━━━━\n"
         "🐟 Nama Toko: Dreamlandfish\n\n"
-        
         "📍 *Alamat Toko:*\n"
         "Sumberan, Sumberagung, Moyudan,\n"
         "Sleman Regency, Special Region of Yogyakarta 55563\n\n"
-        
         "🕒 *Jam Operasional:*\n"
         "Setiap Hari : 08.00 - 21.00 WIB\n\n"
-        
         "📱 *Kontak Admin:*\n"
         "0878-2806-2625\n\n"
-        
         "📸 *Instagram:*\n"
         "@dreamlandfish.myd\n\n"
-        
         "📝 *Tentang Toko:*\n"
         "Menyediakan berbagai macam ikan hias seperti Guppy, Platy, Molly, Cupang, Channa, dan lainnya.\n\n"
-        
         "✨ Terima kasih telah mengunjungi Dreamlandfish!"
     )
 
     keyboard = [
-        [InlineKeyboardButton("📍 Buka Google Maps", url="https://maps.app.goo.gl/1K42MZYKGXGAqiHy6")],
-        [InlineKeyboardButton("💬 Chat Admin", url="https://wa.me/6287828062625")],
+        [InlineKeyboardButton("📍 Buka Google Maps", url="https://maps.google.com")],
+        [InlineKeyboardButton("💬 Chat Admin", url=f"https://wa.me/{ADMIN_WA if ADMIN_WA else ''}")],
         [InlineKeyboardButton("🔙 Kembali ke Menu", callback_data="start_back")]
     ]
 
@@ -168,9 +174,10 @@ async def menu_katalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # Hapus pesan menu sebelumnya biar ga nyepam
-    try: await query.delete_message()
-    except: pass
+    try: 
+        await query.delete_message()
+    except: 
+        pass
     
     await context.bot.send_message(chat_id=update.effective_chat.id, text="📋 **KATALOG KAMI:**", parse_mode='Markdown')
     
@@ -178,7 +185,6 @@ async def menu_katalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
         foto_path = os.path.join(PATH_FOTO_LENGKAP, v['foto'])
         teks_ikan = f"🔹 **{v['nama']}**\n💰 Harga: Rp{v['harga']:,}\n📦 Stok: {v.get('stok', 0)} ekor"
         
-        # Tombol di bawah gambar
         keyboard = [
             [InlineKeyboardButton("📖 Lihat Deskripsi", callback_data=f"desc_{k}")],
             [InlineKeyboardButton(f"🛒 Pesan {v['nama']}", callback_data=f"beli_{k}")],
@@ -200,11 +206,9 @@ async def tampilkan_deskripsi(update: Update, context: ContextTypes.DEFAULT_TYPE
         ikan = KATALOG[key]
         deskripsi = ikan.get("deskripsi", "Deskripsi untuk ikan ini belum tersedia.")
         
-       
         teks_popup = (
             f"🐟 {ikan['nama'].upper()}\n"
-            f"💰 Harga: Rp{ikan['harga']:,}\n"
-            f"\n"
+            f"💰 Harga: Rp{ikan['harga']:,}\n\n"
             f"📝 KETERANGAN:\n"
             f"{deskripsi}"
         )
@@ -213,17 +217,18 @@ async def tampilkan_deskripsi(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.answer(text="⚠️ Deskripsi tidak ditemukan.", show_alert=True)
 
 async def chat_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not groq_client:
+        await update.message.reply_text("Waduh, fitur AI belum dikonfigurasi oleh Admin (API Key kosong).")
+        return
+
     pesan_user = update.message.text
-    
-    # 1. Kita rakit daftar produk dari KATALOG biar AI tahu apa yang kita jual
     daftar_produk = ""
     for k, v in KATALOG.items():
         daftar_produk += f"- {v['nama']}: Rp{v['harga']:,} ({v['deskripsi']})\n"
 
-    # 2. Bikin Prompt yang lebih detail dan galak (biar gak bahas hal di luar toko)
     system_prompt = f"""
 Kamu adalah 'gammy', asisten admin toko ikan 'Dreamlandfish.myd'. 
-Gaya bicara: Gaul, santai, pake bahasa anak muda (pake 'saya/anda' atau 'kak' yang asik), ramah, dan informatif.
+Gaya bicara: Gaul, santai, pake bahasa anak muda (pake kata 'kak' yang asik), ramah, dan informatif.
 
 TUGAS UTAMA:
 1. Menjawab pertanyaan tentang ikan yang ada di katalog kami.
@@ -235,13 +240,11 @@ DATA KATALOG KAMI:
 
 ATURAN PENTING:
 - JANGAN jawab kalau ditanya hal di luar ikan (politik, agama, teknologi, dll). Bilang aja "Waduh, gue cuma jago urusan ikan nih, kak! Tanya soal ikan aja yuk."
-- Kalau ikan yang ditanya GAK ADA di katalog, bilang jujur tapi tawarkan ikan yang mirip.
-- Jawabnya singkat-singkat aja, jangan kayak koran.
-- Bisa diajak bercanda tapi tetep sopan.
+- Kalau ikan yang ditanya GAK ADA di katalog, tawarkan opsi yang ada.
+- Jawab singkat padat, jangan terlalu panjang.
 """
     
     try:
-       
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
         
         chat_completion = groq_client.chat.completions.create(
@@ -275,10 +278,8 @@ async def minta_alamat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ASKING_ADDRESS
 
 async def minta_jumlah(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Simpan alamat dari input sebelumnya
     context.user_data['alamat_user'] = update.message.text
     
-    # Bikin tombol pilihan jumlah (misal 1 sampai 5)
     keyboard = [
         [
             InlineKeyboardButton("1", callback_data="qty_1"),
@@ -292,321 +293,4 @@ async def minta_jumlah(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ]
     
-    teks = (
-        "🔢 **Pilih Jumlah Pesanan:**\n\n"
-        "_( SILAHKAN BUAT PESANAN )_"
-    )
-    
-    await update.message.reply_text(teks, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
-    return ASKING_QUANTITY
-
-async def minta_pembayaran(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # --- CEK APAKAH USER KLIK TOMBOL ATAU NGETIK MANUAL ---
-    if update.callback_query:
-        query = update.callback_query
-        await query.answer()
-        
-        # Hapus pesan menu jumlah biar rapi dan nggak nyangkut
-        try:
-            await query.delete_message()
-        except:
-            pass
-            
-        jumlah = int(query.data.split("_")[1]) 
-    else:
-        # Kalau user ngetik manual
-        if not update.message.text.isdigit():
-            await update.message.reply_text("⚠️ Masukkan angka yang valid!")
-            return ASKING_QUANTITY
-        jumlah = int(update.message.text)
-
-    # --- SIMPAN DAN HITUNG ---
-    context.user_data['qty'] = jumlah
-    total_harga = context.user_data['ikan_dipilih']['harga'] * context.user_data['qty']
-    context.user_data['total_harga'] = total_harga
-    
-    teks_bayar = (
-        f"💳 **PEMBAYARAN**\n"
-         f"━━━━━━━━━━━━━\n"
-        f"Total Tagihan: **Rp{total_harga:,}**\n"
-         f"━━━━━━━━━━━━━\n"
-        f"Silakan transfer ke:\n"
-        f"🏦 BCA: `123456789` (A/N Dreamland)\n"
-        f"🏦 Mandiri: `123456789` (A/N Dreamland)\n"
-        f"📱 Atau scan QRIS di bawah ini.\n"
-        f"━━━━━━━━━━━━━"
-    )
-    
-    keyboard = [[InlineKeyboardButton("✅ Selesai Transfer & Buat Nota", callback_data='buat_nota')]]
-    
-    qris_path = os.path.join(PATH_FOTO_LENGKAP, "qris.jpg")
-    try:
-        with open(qris_path, 'rb') as f:
-            await context.bot.send_photo(chat_id=update.effective_chat.id, photo=f, caption=teks_bayar, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
-    except:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=teks_bayar, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
-        
-    return CHOOSING_PAYMENT
-    
-async def buat_nota_akhir(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    # Bikin Order ID unik
-    order_id = f"ORD-{random.randint(1000, 9999)}"
-    
-    # Simpan ke Database Memory
-    DATABASE_ORDER[order_id] = {
-        'nama': context.user_data['nama_user'],
-        'alamat': context.user_data['alamat_user'],
-        'ikan': context.user_data['ikan_dipilih']['nama'],
-        'qty': context.user_data['qty'],
-        'total': context.user_data['total_harga'],
-        'status_bayar': "⏳ Menunggu Verifikasi",
-        'status_barang': "📦 Sedang Diproses"
-    }
-    
-    # Render Nota
-    nota = (
-        f"🧾 **NOTA PEMESANAN ({order_id})**\n"
-        f"━━━━━━━━━━━━━━━━━━\n"
-        f"👤 Nama: {DATABASE_ORDER[order_id]['nama']}\n"
-        f"📍 Alamat: {DATABASE_ORDER[order_id]['alamat']}\n"
-        f"🐟 Pesanan: {DATABASE_ORDER[order_id]['ikan']}\n"
-        f"🔢 Jumlah: {DATABASE_ORDER[order_id]['qty']} ekor\n"
-        f"💰 Total: Rp{DATABASE_ORDER[order_id]['total']:,}\n"
-        f"━━━━━━━━━━━━━━━━━━\n"
-        f"💳 Status Bayar: {DATABASE_ORDER[order_id]['status_bayar']}\n"
-        f"🚚 Status Barang: {DATABASE_ORDER[order_id]['status_barang']}\n\n"
-        f"✨ _Terima kasih telah berbelanja di DreamlandFish!_\n"
-        
-    )
-    
-    keyboard_nota = [
-        [InlineKeyboardButton("🔍 Cek Status Terkini", callback_data=f"cekstatus_{order_id}")],
-        [InlineKeyboardButton("💬 Hubungi Admin", url=f"https://wa.me/{ADMIN_WA}")]
-    ]
-    
-    # Hapus pesan foto QRIS sebelumnya
-    await query.delete_message()
-    # Kirim pesan teks nota yang baru
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=nota, reply_markup=InlineKeyboardMarkup(keyboard_nota), parse_mode='Markdown')
-    
-    # --- NOTIFIKASI ADMIN (DENGAN TOMBOL UPDATE STATUS) ---
-    admin_notif = f"🚨 **ORDER BARU MASUK!** 🚨\nID: {order_id}\nNama: {DATABASE_ORDER[order_id]['nama']}\nTotal: Rp{DATABASE_ORDER[order_id]['total']:,}"
-    admin_keyboard = [
-        [InlineKeyboardButton("✅ Konfirmasi Lunas", callback_data=f"setlunas_{order_id}")],
-        [InlineKeyboardButton("🚚 Kirim Barang", callback_data=f"setkirim_{order_id}")]
-    ]
-    try:
-        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_notif, reply_markup=InlineKeyboardMarkup(admin_keyboard))
-    except: pass
-    
-    context.user_data.clear()
-    return ConversationHandler.END
-
-# --- 4. CALLBACK GLOBAL (TIDAK MASUK CONVERSATION) ---
-
-async def cek_status_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    order_id = query.data.split("_")[1]
-    
-    if order_id in DATABASE_ORDER:
-        data = DATABASE_ORDER[order_id]
-        status_msg = (
-            f"🔍 **STATUS UPDATE ({order_id})**\n"
-             f"━━━━━━━━━━━━━\n"
-            f"💳 PEMBAYARAN: {data['status_bayar']}\n"
-            f"🚚 PENGIRIMAN: {data['status_barang']}\n"
-             f"━━━━━━━━━━━━━\n"
-        )
-        await query.message.reply_text(status_msg, parse_mode='Markdown')
-    else:
-        await query.message.reply_text("❌ Pesanan tidak ditemukan.")
-
-async def admin_update_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    # Hanya admin yang bisa klik tombol ini
-    if update.effective_user.id != ADMIN_ID:
-        return
-        
-    action, order_id = query.data.split("_")
-    
-    if order_id in DATABASE_ORDER:
-        if action == "setlunas":
-            DATABASE_ORDER[order_id]['status_bayar'] = "✅ LUNAS"
-            await query.edit_message_text(f"✅ {order_id} telah di-set LUNAS.")
-        elif action == "setkirim":
-            DATABASE_ORDER[order_id]['status_barang'] = "🚀 SUDAH DIKIRIM"
-            await query.edit_message_text(f"🚀 {order_id} telah di-set DIKIRIM.")
-
-
-async def batal_ke_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await start(update, context)
-
-def check_connectivity(host="8.8.8.8", port=53, timeout=3):
-    """Cek apakah bot bisa 'melihat' internet luar"""
-    try:
-        socket.setdefaulttimeout(timeout)
-        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
-        return "✅ ONLINE"
-    except Exception:
-        return "❌ OFFLINE"
-
-async def get_bot_diagnostics():
-    """Bikin teks laporan ala terminal VS Code"""
-    start_time = time.time()
-    
-    # Cek Jaringan
-    tg_status = check_connectivity("api.telegram.org", 443)
-    google_status = check_connectivity("google.com", 80)
-    
-    # Hitung Latency (ping sederhana)
-    latency = round((time.time() - start_time) * 1000, 2)
-    
-    # Cek Kapasitas Log
-    log_size = "0 KB"
-    if os.path.exists('bot_errors.log'):
-        log_size = f"{os.path.getsize('bot_errors.log') / 1024:.2f} KB"
-
-    # Template laporan ala Terminal
-    report = (
-        "<code>[DREAMLAND DIAGNOSTICS]</code>\n"
-        "<code>------------------------</code>\n"
-        f"🌐 <b>Telegram API:</b> <code>{tg_status}</code>\n"
-        f"🌍 <b>Google DNS:</b>   <code>{google_status}</code>\n"
-        f"⚡ <b>Latency:</b>      <code>{latency}ms</code>\n"
-        f"📁 <b>Log Size:</b>     <code>{log_size}</code>\n"
-        f"🤖 <b>AI Status:</b>     <code>{'READY' if GROQ_API_KEY else 'MISSING'}</code>\n"
-        "<code>------------------------</code>\n"
-        f"⏰ <b>Server Time:</b> <code>{datetime.now().strftime('%H:%M:%S')}</code>"
-    )
-    return report
-
-async def admin_cek_bug_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    if str(update.effective_user.id) != str(ADMIN_ID):
-        await query.message.reply_text("⛔ Restricted Area!")
-        return
-
-    # 1. Kirim Laporan Diagnostik (Teks ala Terminal)
-    status_report = await get_bot_diagnostics()
-    await query.message.reply_text(status_report, parse_mode="HTML")
-
-    # 2. Kirim File Log (Jika ada error)
-    log_file = 'bot_errors.log'
-    if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
-        with open(log_file, 'rb') as f:
-            await context.bot.send_document(
-                chat_id=update.effective_chat.id,
-                document=f,
-                caption="📄 <b>Full Error Log</b>",
-                parse_mode="HTML"
-            )
-    else:
-        await query.message.reply_text("✨ <b>Terminal Clean:</b> No errors detected.")
-# --- 5. MAIN ROUTING ---
-
-async def admin_pilih_ikan_stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    keyboard = []
-    for k, v in KATALOG.items():
-        # Menampilkan stok saat ini di tombol pilihan
-        keyboard.append([InlineKeyboardButton(f"{v['nama']} (Stok: {v.get('stok', 0)})", callback_data=f"upstok_{k}")])
-    
-    keyboard.append([InlineKeyboardButton("🔙 Kembali ke Menu Utama", callback_data="start_back")])
-    
-    await query.edit_message_text("🛠 **ADMIN MODE: UPDATE STOK**\nPilih ikan yang ingin diubah jumlah stoknya:", 
-                                  reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
-    return ADMIN_UPDATE_STOK_INPUT
-
-async def admin_input_stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    # Mengambil key ikan (misal: 'betta') dari callback_data
-    ikan_key = query.data.replace("upstok_", "")
-    context.user_data['edit_ikan_key'] = ikan_key
-    await query.answer()
-    
-    await query.edit_message_text(f"🔢 Masukkan jumlah stok baru untuk **{KATALOG[ikan_key]['nama']}**:", parse_mode='Markdown')
-    return ADMIN_UPDATE_STOK_INPUT
-
-async def admin_simpan_stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    if not text.isdigit():
-        await update.message.reply_text("⚠️ Harap masukkan angka saja (contoh: 15)!")
-        return ADMIN_UPDATE_STOK_INPUT
-    
-    ikan_key = context.user_data.get('edit_ikan_key')
-    stok_baru = int(text)
-    
-    if ikan_key in KATALOG:
-        KATALOG[ikan_key]['stok'] = stok_baru
-        await update.message.reply_text(f"✅ Stok **{KATALOG[ikan_key]['nama']}** berhasil diupdate menjadi **{stok_baru}** ekor.")
-    
-    context.user_data.clear()
-    # Kembali ke tampilan awal admin
-    return await start(update, context)
-
-# --- LOGIKA UPDATE STOK (ADMIN) ---
-def main():
-    if not TOKEN:
-        print("❌ TOKEN KOSONG!")
-        return
-
-    app = Application.builder().token(TOKEN).build()
-    
-    # Handlers Perintah & Tombol
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(start, pattern='^start_back$'))
-    app.add_handler(CallbackQueryHandler(admin_cek_bug_callback, pattern='^admin_cek_bug$'))
-    app.add_handler(CallbackQueryHandler(menu_katalog, pattern='^lihat_katalog$'))
-    app.add_handler(CallbackQueryHandler(tampilkan_deskripsi, pattern='^desc_')) # Harus ada ini!
-    app.add_handler(CallbackQueryHandler(cek_status_order, pattern='^cekstatus_'))
-    app.add_handler(CallbackQueryHandler(admin_update_status, pattern='^(setlunas_|setkirim_)'))
-    app.add_handler(CallbackQueryHandler(bantuan_ai, pattern='^bantuan_ai$'))
-    app.add_handler(CallbackQueryHandler(info_toko, pattern='^info_toko$'))
-
-    admin_stok_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(admin_pilih_ikan_stok, pattern='^admin_update_stok$')],
-        states={
-            ADMIN_UPDATE_STOK_INPUT: [
-                CallbackQueryHandler(admin_input_stok, pattern='^upstok_'),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, admin_simpan_stok)
-            ],
-        },
-        fallbacks=[CommandHandler('start', start), CallbackQueryHandler(start, pattern='^start_back$')],
-        allow_reentry=True
-    )
-    app.add_handler(admin_stok_conv)
-
-    # Alur Pesanan (Conversation)
-    conv_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(minta_nama, pattern='^beli_')],
-        states={
-            ASKING_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, minta_alamat)],
-            ASKING_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, minta_jumlah)],
-            ASKING_QUANTITY: [
-                CallbackQueryHandler(minta_pembayaran, pattern='^qty_'),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, minta_pembayaran)
-            ],
-            CHOOSING_PAYMENT: [CallbackQueryHandler(buat_nota_akhir, pattern='^buat_nota$')]
-        },
-        fallbacks=[CommandHandler('start', start)]
-    )
-    app.add_handler(conv_handler)
-
-    # Chat AI (WAJIB PALING BAWAH)
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat_ai))
-
-    print("🚀 Bot Dreamland RUNNING...")
-    app.run_polling()
-    
-if __name__ == '__main__':
-    main()
+    teks = "🔢 **Pilih Jumlah Pesanan:**\n\
